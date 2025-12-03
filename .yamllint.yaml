@@ -1,0 +1,46 @@
+# =============================================================================
+# ARED Edge IOTA Anchor Service - YAML Linting Configuration
+# =============================================================================
+
+extends: default
+
+rules:
+  new-lines:
+    type: unix
+  line-length:
+    max: 120
+    level: warning
+  document-start: disable
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]
+  comments:
+    require-starting-space: true
+    min-spaces-from-content: 1
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+  commas:
+    max-spaces-before: 0
+    min-spaces-after: 1
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 0
+  hyphens:
+    max-spaces-after: 1
+  key-duplicates: enable
+  new-line-at-end-of-file: enable
+  trailing-spaces: enable
+
+ignore: |
+  .venv/
+  __pycache__/
