@@ -19,40 +19,32 @@ from starlette.responses import Response
 from app.api.v1 import router as api_v1_router
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.db import close_db, init_db
+from app.db import async_session_factory, close_db, init_db
 from app.services.anchor_service import AnchorService
+from app.services.anchor_workflow import AnchorWorkflow
+from app.services.reconciliation import ReconciliationService, ensure_retry_log_table
 
 setup_logging()
 logger = structlog.get_logger(__name__)
 
 # Prometheus metrics
-ANCHORS_CREATED = Counter(
-    "iota_anchors_created_total",
-    "Total anchors created",
-    ["status"],
-)
-ANCHORS_POSTED = Counter(
-    "iota_anchors_posted_total",
-    "Total anchors posted to Tangle",
-)
-ANCHORS_CONFIRMED = Counter(
-    "iota_anchors_confirmed_total",
-    "Total anchors confirmed on Tangle",
-)
-ANCHOR_POSTING_TIME = Histogram(
-    "iota_anchor_posting_seconds",
-    "Time to post anchor to Tangle",
-    buckets=[1, 5, 10, 30, 60, 120, 300],
-)
 IOTA_NODE_CONNECTED = Gauge(
     "iota_node_connected",
     "IOTA node connection status (1=connected, 0=disconnected)",
+)
+SCHEDULER_LAST_RUN = Gauge(
+    "anchor_scheduler_last_run_timestamp",
+    "Timestamp of last scheduled anchor run",
+)
+RECONCILIATION_LAST_RUN = Gauge(
+    "anchor_reconciliation_last_run_timestamp",
+    "Timestamp of last reconciliation run",
 )
 
 # Scheduler for periodic anchoring
 scheduler = AsyncIOScheduler()
 
-# Global anchor service instance
+# Global service instances
 anchor_service: AnchorService | None = None
 
 
@@ -84,8 +76,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Store service in app state for access in routes
     app.state.anchor_service = anchor_service
 
-    # Start scheduler for periodic anchoring
+    # Ensure retry log table exists
+    async with async_session_factory() as session:
+        await ensure_retry_log_table(session)
+
+    # Start scheduler for periodic anchoring and reconciliation
     if settings.SCHEDULER_ENABLED:
+        # Daily anchor job
         scheduler.add_job(
             run_anchor_job,
             "cron",
@@ -93,11 +90,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             minute=settings.ANCHOR_SCHEDULE_MINUTE,
             id="daily_anchor",
         )
+
+        # Reconciliation job (every 15 minutes)
+        scheduler.add_job(
+            run_reconciliation_job,
+            "interval",
+            minutes=15,
+            id="reconciliation",
+        )
+
         scheduler.start()
         logger.info(
-            "Scheduler started for daily anchoring",
-            hour=settings.ANCHOR_SCHEDULE_HOUR,
-            minute=settings.ANCHOR_SCHEDULE_MINUTE,
+            "Scheduler started",
+            anchor_hour=settings.ANCHOR_SCHEDULE_HOUR,
+            anchor_minute=settings.ANCHOR_SCHEDULE_MINUTE,
+            reconciliation_interval_minutes=15,
         )
 
     yield
@@ -117,32 +124,66 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 async def run_anchor_job() -> None:
-    """Execute daily anchor job."""
+    """Execute daily anchor job using workflow."""
     global anchor_service
+    import time
 
     logger.info("Running scheduled anchor job")
+    SCHEDULER_LAST_RUN.set(time.time())
 
     if not anchor_service:
         logger.error("Anchor service not initialized")
         return
 
     try:
-        result = await anchor_service.run_daily_anchor()
-        if result:
-            ANCHORS_CREATED.labels(status=result.status.value).inc()
-            if result.iota_block_id:
-                ANCHORS_POSTED.inc()
-            logger.info(
-                "Daily anchor job completed",
-                anchor_id=str(result.id),
-                status=result.status.value,
-            )
-        else:
-            logger.info("Daily anchor job completed (no events to anchor)")
+        async with async_session_factory() as session:
+            workflow = AnchorWorkflow(session, anchor_service)
+            result = await workflow.run_daily_anchor()
+
+            if result.success:
+                logger.info(
+                    "Daily anchor job completed",
+                    anchor_id=str(result.anchor_id) if result.anchor_id else None,
+                    event_count=result.event_count,
+                    duration=result.duration_seconds,
+                )
+            else:
+                logger.error(
+                    "Daily anchor job failed",
+                    error=result.error,
+                )
 
     except Exception as e:
         logger.error("Daily anchor job failed", error=str(e))
-        ANCHORS_CREATED.labels(status="failed").inc()
+
+
+async def run_reconciliation_job() -> None:
+    """Execute reconciliation job."""
+    global anchor_service
+    import time
+
+    logger.debug("Running reconciliation job")
+    RECONCILIATION_LAST_RUN.set(time.time())
+
+    if not anchor_service:
+        logger.error("Anchor service not initialized")
+        return
+
+    try:
+        async with async_session_factory() as session:
+            reconciliation = ReconciliationService(session, anchor_service)
+            result = await reconciliation.run_reconciliation()
+
+            if result.processed > 0:
+                logger.info(
+                    "Reconciliation completed",
+                    processed=result.processed,
+                    retried=result.retried,
+                    confirmed=result.confirmed,
+                )
+
+    except Exception as e:
+        logger.error("Reconciliation job failed", error=str(e))
 
 
 def create_application() -> FastAPI:
