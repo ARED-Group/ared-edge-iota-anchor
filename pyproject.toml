@@ -1,0 +1,61 @@
+# =============================================================================
+# ARED Edge IOTA Anchor Service
+# =============================================================================
+[project]
+name = "ared-iota-anchor"
+version = "1.0.0"
+description = "IOTA Tangle anchoring service for ARED Edge IoT Platform"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    { name = "ARED Team", email = "engineering@a-r-e-d.com" }
+]
+
+dependencies = [
+    "iota-sdk>=1.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "sqlalchemy>=2.0.23",
+    "asyncpg>=0.29.0",
+    "structlog>=23.2.0",
+    "prometheus-client>=0.19.0",
+    "apscheduler>=3.10.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.11.0",
+    "ruff>=0.1.6",
+    "mypy>=1.7.0",
+]
+
+[project.scripts]
+iota-anchor = "app.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
