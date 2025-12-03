@@ -1,0 +1,42 @@
+# =============================================================================
+# ARED Edge IOTA Anchor Service - Git Attributes
+# Ensures consistent line endings across all platforms
+# =============================================================================
+
+# Set default behavior to automatically normalize line endings
+* text=auto eol=lf
+
+# Python source files
+*.py text eol=lf
+*.pyi text eol=lf
+
+# Explicitly declare text files to ensure normalization
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.conf text eol=lf
+*.toml text eol=lf
+
+# Docker files
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+
+# Kubernetes manifests
+*.yaml text eol=lf
+
+# Shell scripts (must be LF for execution)
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows-specific files (keep CRLF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files (do not modify)
+*.png binary
+*.jpg binary
+*.wasm binary
