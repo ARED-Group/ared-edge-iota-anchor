@@ -1,0 +1,32 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - Development Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ared-edge-dev
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: development
+
+# Override schedule for more frequent testing in dev
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/schedule
+        value: "0 */4 * * *"
+    target:
+      kind: CronJob
+      name: iota-anchor
+
+configMapGenerator:
+  - name: iota-anchor-config
+    behavior: merge
+    literals:
+      - IOTA_NETWORK=testnet
+      - IOTA_NODE_URL=https://api.testnet.shimmer.network
+      - LOG_LEVEL=debug
+      - DRY_RUN=true

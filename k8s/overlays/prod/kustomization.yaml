@@ -1,0 +1,22 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - Production Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ared-edge
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: production
+
+configMapGenerator:
+  - name: iota-anchor-config
+    behavior: merge
+    literals:
+      - IOTA_NETWORK=mainnet
+      - IOTA_NODE_URL=https://api.shimmer.network
+      - LOG_LEVEL=warn
+      - DRY_RUN=false

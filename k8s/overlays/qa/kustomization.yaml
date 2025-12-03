@@ -1,0 +1,22 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - QA Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ared-edge-qa
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: qa
+
+configMapGenerator:
+  - name: iota-anchor-config
+    behavior: merge
+    literals:
+      - IOTA_NETWORK=testnet
+      - IOTA_NODE_URL=https://api.testnet.shimmer.network
+      - LOG_LEVEL=info
+      - DRY_RUN=false
