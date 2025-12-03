@@ -23,6 +23,7 @@ from app.db import async_session_factory, close_db, init_db
 from app.services.anchor_service import AnchorService
 from app.services.anchor_workflow import AnchorWorkflow
 from app.services.reconciliation import ReconciliationService, ensure_retry_log_table
+from app.metrics import get_anchor_metrics
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -75,6 +76,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Store service in app state for access in routes
     app.state.anchor_service = anchor_service
+
+    # P6.1.4: Initialize anchor metrics
+    anchor_metrics = get_anchor_metrics()
+    anchor_metrics.set_service_info(
+        version=settings.VERSION,
+        environment=settings.ENV,
+        schedule="daily",
+    )
+    anchor_metrics.set_iota_node_info(
+        node_url=settings.IOTA_NODE_URL,
+        network=settings.IOTA_NETWORK,
+    )
+    logger.info("Anchor metrics initialized")
 
     # Ensure retry log table exists
     async with async_session_factory() as session:
