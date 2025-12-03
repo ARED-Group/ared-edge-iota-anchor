@@ -1,0 +1,12 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - Code Owners
+# =============================================================================
+
+* @ared/platform-team
+
+/aggregator/ @ared/platform-team
+/poster/ @ared/platform-team @ared/blockchain-team
+/k8s/ @ared/devops-team
+/db/ @ared/dba-team
+
+SECURITY.md @ared/security-team
