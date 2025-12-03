@@ -383,3 +383,101 @@ class AnchorRepository:
             List of failed AnchorRecords
         """
         return await self.list_anchors(status=AnchorStatus.FAILED.value)
+
+    async def count_anchors(self, status: str | None = None) -> int:
+        """
+        Count total anchors with optional status filter.
+
+        Args:
+            status: Optional status filter
+
+        Returns:
+            Total count
+        """
+        if status:
+            query = text("""
+                SELECT COUNT(*) as count
+                FROM anchors
+                WHERE status = :status
+            """)
+            result = await self._session.execute(query, {"status": status})
+        else:
+            query = text("SELECT COUNT(*) as count FROM anchors")
+            result = await self._session.execute(query)
+
+        row = result.fetchone()
+        return row.count if row else 0
+
+    async def get_anchor_item_by_hash(
+        self,
+        anchor_id: UUID,
+        event_hash: str,
+    ) -> dict[str, Any] | None:
+        """
+        Get a specific anchor item by anchor ID and event hash.
+
+        Args:
+            anchor_id: Anchor UUID
+            event_hash: Event hash
+
+        Returns:
+            Anchor item dict or None
+        """
+        query = text("""
+            SELECT id, anchor_id, event_id, event_hash, position_in_merkle, merkle_proof
+            FROM anchor_items
+            WHERE anchor_id = :anchor_id AND event_hash = :event_hash
+        """)
+
+        result = await self._session.execute(
+            query,
+            {"anchor_id": anchor_id, "event_hash": event_hash},
+        )
+        row = result.fetchone()
+
+        if not row:
+            return None
+
+        return {
+            "id": str(row.id),
+            "anchor_id": row.anchor_id,
+            "event_id": str(row.event_id) if row.event_id else None,
+            "event_hash": row.event_hash,
+            "position": row.position_in_merkle,
+            "merkle_proof": row.merkle_proof,
+        }
+
+    async def find_anchor_item_by_hash(
+        self,
+        event_hash: str,
+    ) -> dict[str, Any] | None:
+        """
+        Find anchor item by event hash across all anchors.
+
+        Args:
+            event_hash: Event hash to search
+
+        Returns:
+            Anchor item dict or None
+        """
+        query = text("""
+            SELECT id, anchor_id, event_id, event_hash, position_in_merkle, merkle_proof
+            FROM anchor_items
+            WHERE event_hash = :event_hash
+            LIMIT 1
+        """)
+
+        result = await self._session.execute(query, {"event_hash": event_hash})
+        row = result.fetchone()
+
+        if not row:
+            return None
+
+        return {
+            "id": str(row.id),
+            "anchor_id": row.anchor_id,
+            "event_id": str(row.event_id) if row.event_id else None,
+            "event_hash": row.event_hash,
+            "position": row.position_in_merkle,
+            "merkle_proof": row.merkle_proof,
+        }
