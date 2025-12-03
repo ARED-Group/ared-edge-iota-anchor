@@ -6,9 +6,6 @@
 | ------- | ------------------ |
 | 1.x.x   | :white_check_mark: |
 
-## Reporting a Vulnerability
-
-Report security vulnerabilities to: security@a-r-e-d.com
 
 ## IOTA Security Considerations
 
