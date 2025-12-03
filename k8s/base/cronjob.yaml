@@ -1,0 +1,133 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - Kubernetes CronJob
+# =============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iota-anchor-daily
+  namespace: ared-edge
+  labels:
+    app.kubernetes.io/name: iota-anchor
+    app.kubernetes.io/component: anchoring
+spec:
+  schedule: "0 0 * * *"  # Daily at midnight UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: iota-anchor
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: iota-anchor
+              image: ghcr.io/ared/iota-anchor:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-c", "from app.main import run_anchor_job; import asyncio; asyncio.run(run_anchor_job())"]
+              env:
+                - name: DB_HOST
+                  value: postgres
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secrets
+                      key: POSTGRES_PASSWORD
+                - name: IOTA_NODE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: iota-config
+                      key: IOTA_NODE_URL
+                - name: IOTA_SEED
+                  valueFrom:
+                    secretKeyRef:
+                      name: iota-secrets
+                      key: IOTA_SEED
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+
+---
+# API Service for on-demand anchoring and verification
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iota-anchor-api
+  namespace: ared-edge
+  labels:
+    app.kubernetes.io/name: iota-anchor-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: iota-anchor-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: iota-anchor-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: iota-anchor-api
+          image: ghcr.io/ared/iota-anchor:latest
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SCHEDULER_ENABLED
+              value: "false"
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iota-anchor-api
+  namespace: ared-edge
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app.kubernetes.io/name: iota-anchor-api

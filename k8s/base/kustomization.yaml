@@ -1,0 +1,21 @@
+# =============================================================================
+# ARED Edge IOTA Anchor - Kustomize Base
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ared-edge
+
+commonLabels:
+  app.kubernetes.io/part-of: ared-edge-iot-platform
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - cronjob.yaml
+
+configMapGenerator:
+  - name: iota-config
+    literals:
+      - IOTA_NODE_URL=https://api.shimmer.network
+      - IOTA_NETWORK=shimmer
+      - SCHEDULER_ENABLED=true
