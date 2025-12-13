@@ -136,10 +136,11 @@ class TestIOTAClient:
     @pytest.mark.asyncio
     async def test_get_block_metadata(self, iota_client: IOTAClient) -> None:
         """Test getting block metadata."""
-        iota_client._client = AsyncMock()
+        iota_client._client = MagicMock()
         iota_client._connected = True
         
-        mock_response = AsyncMock()
+        # Use MagicMock for response since .json() is sync in httpx
+        mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "isSolid": True,

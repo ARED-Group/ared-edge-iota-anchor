@@ -3,7 +3,7 @@ Unit tests for the Anchor Service.
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 from uuid import uuid4
 
 import pytest
@@ -106,9 +106,10 @@ class TestAnchorService:
     ) -> None:
         """Test successful anchor creation."""
         with patch.object(
-            anchor_service._iota_client,
+            type(anchor_service._iota_client),
             "is_connected",
-            new_callable=lambda: property(lambda self: True),
+            new_callable=PropertyMock,
+            return_value=True,
         ):
             with patch.object(
                 anchor_service._iota_client,
@@ -199,29 +200,33 @@ class TestAnchorService:
         anchor_service: AnchorService,
     ) -> None:
         """Test node status when connected."""
-        anchor_service._iota_client._connected = True
-        
         with patch.object(
-            anchor_service._iota_client,
-            "_get_node_info",
-            new_callable=AsyncMock,
-        ) as mock_info:
-            mock_info.return_value = {
-                "version": "1.0.0",
-                "protocol": {"networkName": "testnet"},
-            }
-            
+            type(anchor_service._iota_client),
+            "is_connected",
+            new_callable=PropertyMock,
+            return_value=True,
+        ):
             with patch.object(
                 anchor_service._iota_client,
-                "_check_health",
+                "_get_node_info",
                 new_callable=AsyncMock,
-            ) as mock_health:
-                mock_health.return_value = True
+            ) as mock_info:
+                mock_info.return_value = {
+                    "version": "1.0.0",
+                    "protocol": {"networkName": "testnet"},
+                }
                 
-                status = await anchor_service.get_node_status()
-                
-                assert status["connected"]
-                assert "version" in status
+                with patch.object(
+                    anchor_service._iota_client,
+                    "_check_health",
+                    new_callable=AsyncMock,
+                ) as mock_health:
+                    mock_health.return_value = True
+                    
+                    status = await anchor_service.get_node_status()
+                    
+                    assert status["connected"]
+                    assert "version" in status
 
     @pytest.mark.asyncio
     async def test_get_node_status_disconnected(
