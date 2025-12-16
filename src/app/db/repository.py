@@ -481,3 +481,75 @@ class AnchorRepository:
             "position": row.position_in_merkle,
             "merkle_proof": row.merkle_proof,
         }
+
+    async def get_anchor_items_paginated(
+        self,
+        anchor_id: UUID,
+        limit: int = 100,
+        offset: int = 0,
+        device_id: str | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """
+        Get paginated anchor items for an anchor with optional device filter.
+
+        Args:
+            anchor_id: Anchor UUID
+            limit: Maximum items to return
+            offset: Pagination offset
+            device_id: Optional device ID filter
+
+        Returns:
+            Tuple of (items list, total count)
+        """
+        if device_id:
+            query = text("""
+                SELECT ai.id, ai.event_id, ai.event_hash, ai.position_in_merkle, 
+                       ai.merkle_proof, ai.created_at
+                FROM anchor_items ai
+                LEFT JOIN events e ON ai.event_id = e.id
+                WHERE ai.anchor_id = :anchor_id AND e.device_id = :device_id
+                ORDER BY ai.position_in_merkle
+                LIMIT :limit OFFSET :offset
+            """)
+            count_query = text("""
+                SELECT COUNT(*) as count
+                FROM anchor_items ai
+                LEFT JOIN events e ON ai.event_id = e.id
+                WHERE ai.anchor_id = :anchor_id AND e.device_id = :device_id
+            """)
+            params = {"anchor_id": anchor_id, "device_id": device_id, "limit": limit, "offset": offset}
+            count_params = {"anchor_id": anchor_id, "device_id": device_id}
+        else:
+            query = text("""
+                SELECT id, event_id, event_hash, position_in_merkle, merkle_proof, created_at
+                FROM anchor_items
+                WHERE anchor_id = :anchor_id
+                ORDER BY position_in_merkle
+                LIMIT :limit OFFSET :offset
+            """)
+            count_query = text("""
+                SELECT COUNT(*) as count
+                FROM anchor_items
+                WHERE anchor_id = :anchor_id
+            """)
+            params = {"anchor_id": anchor_id, "limit": limit, "offset": offset}
+            count_params = {"anchor_id": anchor_id}
+
+        result = await self._session.execute(query, params)
+        count_result = await self._session.execute(count_query, count_params)
+
+        items = []
+        for row in result.fetchall():
+            items.append({
+                "id": str(row.id),
+                "event_id": str(row.event_id) if row.event_id else None,
+                "event_hash": row.event_hash,
+                "position": row.position_in_merkle,
+                "merkle_proof": row.merkle_proof,
+                "created_at": row.created_at.isoformat() if hasattr(row, "created_at") and row.created_at else None,
+            })
+
+        count_row = count_result.fetchone()
+        total = count_row.count if count_row else 0
+
+        return items, total

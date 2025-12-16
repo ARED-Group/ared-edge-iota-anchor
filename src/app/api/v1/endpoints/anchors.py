@@ -409,6 +409,121 @@ async def get_anchor(anchor_id: UUID) -> AnchorDetailResponse:
         )
 
 
+class AnchorEventResponse(BaseModel):
+    """Single event in anchor response."""
+
+    event_hash: str
+    position: int
+    event_id: str | None = None
+    merkle_proof: list[str] | None = None
+    created_at: str | None = None
+
+
+class AnchorEventsListResponse(BaseModel):
+    """Paginated anchor events list response."""
+
+    items: list[AnchorEventResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+    anchor_id: UUID
+    anchor_digest: str
+
+
+@router.get(
+    "/{anchor_id}/events",
+    response_model=AnchorEventsListResponse,
+    summary="List anchor events",
+    description="List events included in an anchor with pagination and optional device filter.",
+    responses={
+        200: {"description": "Anchor events list"},
+        404: {"description": "Anchor not found"},
+    },
+)
+async def list_anchor_events(
+    anchor_id: UUID,
+    device_id: str | None = Query(
+        default=None,
+        description="Filter by device ID",
+    ),
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=1000,
+        description="Maximum number of events to return",
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="Number of events to skip",
+    ),
+) -> AnchorEventsListResponse:
+    """
+    List events included in an anchor.
+
+    Returns paginated list of event hashes with their Merkle proofs.
+    Optionally filter by device_id to find specific device events.
+    """
+    logger.info(
+        "Listing anchor events",
+        anchor_id=str(anchor_id),
+        device_id=device_id,
+        limit=limit,
+        offset=offset,
+    )
+
+    try:
+        async with async_session_factory() as session:
+            repository = AnchorRepository(session)
+
+            anchor = await repository.get_anchor(anchor_id)
+            if not anchor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Anchor {anchor_id} not found",
+                )
+
+            items, total = await repository.get_anchor_items_paginated(
+                anchor_id=anchor_id,
+                limit=limit,
+                offset=offset,
+                device_id=device_id,
+            )
+
+            has_more = offset + len(items) < total
+
+            event_responses = [
+                AnchorEventResponse(
+                    event_hash=item["event_hash"],
+                    position=item["position"],
+                    event_id=item.get("event_id"),
+                    merkle_proof=item.get("merkle_proof"),
+                    created_at=item.get("created_at"),
+                )
+                for item in items
+            ]
+
+            return AnchorEventsListResponse(
+                items=event_responses,
+                total=total,
+                limit=limit,
+                offset=offset,
+                has_more=has_more,
+                anchor_id=anchor.id,
+                anchor_digest=anchor.digest,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to list anchor events", anchor_id=str(anchor_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list anchor events: {e}",
+        )
+
+
 @router.post(
     "/verify",
     response_model=VerifyResponse,
