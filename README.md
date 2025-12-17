@@ -86,9 +86,28 @@ Files & layout (high level)
 - k8s/: CronJob or Deployment manifests
 - dev/: local test tooling and mocks
 
-Next actions you can take
-- Paste the README contents above into the repository root README.md and commit.
-- Or, if you prefer, I can produce ready-to-run commit commands you can execute locally.
+Integration with Edge Services
+
+This service integrates with the edge-iot-mqtt-services repository for event aggregation and anchor storage.
+
+Related Documentation
+- [Failure Recovery Matrix](../edge-iot-mqtt-services/docs/FAILURE_RECOVERY_MATRIX.md) - Recovery procedures for IOTA anchor failures
+- [Prospect Integration](../edge-iot-mqtt-services/docs/PROSPECT_INTEGRATION.md) - Cloud sync includes anchor references
+- [Storage Retention](../edge-iot-mqtt-services/docs/STORAGE_RETENTION.md) - Anchor data retention policies
+
+Prospect Cloud Integration
+Anchors are synchronized to Prospect Cloud for external verification:
+- Anchor records synced with highest priority (priority 1)
+- Includes: digest, method, time range, IOTA message ID, confirmation status
+- Proof references attached to telemetry payloads for end-to-end auditability
+
+Failure Recovery
+| Failure Mode | Detection | Recovery |
+|--------------|-----------|----------|
+| IOTA node unreachable | Post timeout, connection error | Retry with exponential backoff, failover to alternate node |
+| Anchor post failed | HTTP error, invalid response | Mark as failed, retry on next schedule |
+| DB write failed | Transaction error | Rollback, retry anchor creation |
+| Duplicate anchor | Idempotency check | Skip, return existing anchor ID |
 
 License
 - Add LICENSE at repository root (choose an appropriate license for your code).
