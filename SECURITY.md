@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
+Currently supported versions:
+
+- 1.x.x: Supported
 
 
 ## IOTA Security Considerations
