@@ -94,6 +94,15 @@ spec:
               value: "false"
             - name: DB_HOST
               value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: ared_edge
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
