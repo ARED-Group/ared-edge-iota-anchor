@@ -29,8 +29,8 @@ spec:
             runAsUser: 1000
           containers:
             - name: iota-anchor
-              image: ghcr.io/ared/iota-anchor:latest
-              imagePullPolicy: IfNotPresent
+              image: docker.io/library/ared-iota-anchor:latest
+              imagePullPolicy: Never
               command: ["python", "-c", "from app.main import run_anchor_job; import asyncio; asyncio.run(run_anchor_job())"]
               env:
                 - name: DB_HOST
@@ -85,7 +85,8 @@ spec:
         runAsUser: 1000
       containers:
         - name: iota-anchor-api
-          image: ghcr.io/ared/iota-anchor:latest
+          image: docker.io/library/ared-iota-anchor:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8082
           env:
