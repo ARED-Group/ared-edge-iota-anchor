@@ -16,6 +16,7 @@ resources:
 configMapGenerator:
   - name: iota-config
     literals:
-      - IOTA_NODE_URL=https://api.shimmer.network
-      - IOTA_NETWORK=shimmer
+      - IOTA_ENABLED=true
+      - IOTA_NODE_URL=https://api.testnet.shimmer.network
+      - IOTA_NETWORK=testnet
       - SCHEDULER_ENABLED=true

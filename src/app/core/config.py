@@ -1,4 +1,4 @@
-﻿"""
+"""
 ARED Edge IOTA Anchor Service - Configuration
 
 Centralized configuration for IOTA Tangle anchoring service.
@@ -118,6 +118,12 @@ class Settings(BaseSettings):
     IOTA_CONFIRMATION_POLL_INTERVAL: int = Field(
         default=5,
         description="Poll interval for confirmation status in seconds",
+    )
+
+    # IOTA Feature Toggle
+    IOTA_ENABLED: bool = Field(
+        default=True,
+        description="Enable IOTA Tangle anchoring. Set to false for graceful degradation.",
     )
 
     # Scheduler

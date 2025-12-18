@@ -67,11 +67,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Initialize anchor service
     anchor_service = AnchorService()
-    try:
-        await anchor_service.initialize()
-        IOTA_NODE_CONNECTED.set(1)
-    except Exception as e:
-        logger.warning("Failed to connect to IOTA node on startup", error=str(e))
+    if settings.IOTA_ENABLED:
+        try:
+            await anchor_service.initialize()
+            IOTA_NODE_CONNECTED.set(1)
+        except Exception as e:
+            logger.warning(
+                "Failed to connect to IOTA node on startup - service will operate in degraded mode",
+                error=str(e),
+            )
+            IOTA_NODE_CONNECTED.set(0)
+    else:
+        logger.info("IOTA anchoring disabled via configuration")
         IOTA_NODE_CONNECTED.set(0)
 
     # Store service in app state for access in routes
@@ -238,18 +245,27 @@ def create_application() -> FastAPI:
             "status": "healthy",
             "service": "iota-anchor",
             "version": settings.VERSION,
+            "iota_enabled": settings.IOTA_ENABLED,
             "iota_node": iota_status,
             "iota_network": settings.IOTA_NETWORK,
         }
 
     @app.get("/ready")
     async def ready() -> Response:
-        """Readiness probe for Kubernetes."""
-        global anchor_service
-
-        if anchor_service and anchor_service.iota_client.is_connected:
+        """
+        Readiness probe for Kubernetes.
+        
+        Checks database connectivity as the critical dependency.
+        IOTA connectivity is optional for graceful degradation.
+        """
+        try:
+            async with async_session_factory() as session:
+                from sqlalchemy import text
+                await session.execute(text("SELECT 1"))
             return Response(status_code=200, content="ready")
-        return Response(status_code=503, content="not ready")
+        except Exception as e:
+            logger.error("Readiness check failed - database unreachable", error=str(e))
+            return Response(status_code=503, content="not ready - database unavailable")
 
     @app.get("/live")
     async def live() -> Response:

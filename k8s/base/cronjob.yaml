@@ -45,11 +45,24 @@ spec:
                     configMapKeyRef:
                       name: iota-config
                       key: IOTA_NODE_URL
+                - name: IOTA_ENABLED
+                  valueFrom:
+                    configMapKeyRef:
+                      name: iota-config
+                      key: IOTA_ENABLED
+                      optional: true
+                - name: IOTA_NETWORK
+                  valueFrom:
+                    configMapKeyRef:
+                      name: iota-config
+                      key: IOTA_NETWORK
+                      optional: true
                 - name: IOTA_SEED
                   valueFrom:
                     secretKeyRef:
                       name: iota-secrets
                       key: IOTA_SEED
+                      optional: true
               resources:
                 requests:
                   cpu: 100m
@@ -92,6 +105,24 @@ spec:
           env:
             - name: SCHEDULER_ENABLED
               value: "false"
+            - name: IOTA_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: iota-config
+                  key: IOTA_ENABLED
+                  optional: true
+            - name: IOTA_NODE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: iota-config
+                  key: IOTA_NODE_URL
+                  optional: true
+            - name: IOTA_NETWORK
+              valueFrom:
+                configMapKeyRef:
+                  name: iota-config
+                  key: IOTA_NETWORK
+                  optional: true
             - name: DB_HOST
               value: postgres
             - name: DB_PORT
