@@ -254,7 +254,7 @@ async def create_anchor(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create anchor: {e}",
-        )
+        ) from e
 
 
 async def _run_background_anchor(
@@ -340,7 +340,7 @@ async def list_anchors(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list anchors: {e}",
-        )
+        ) from e
 
 
 @router.get(
@@ -406,7 +406,7 @@ async def get_anchor(anchor_id: UUID) -> AnchorDetailResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get anchor: {e}",
-        )
+        ) from e
 
 
 class AnchorEventResponse(BaseModel):
@@ -517,11 +517,15 @@ async def list_anchor_events(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to list anchor events", anchor_id=str(anchor_id), error=str(e))
+        logger.error(
+            "Failed to list anchor events",
+            anchor_id=str(anchor_id),
+            error=str(e),
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list anchor events: {e}",
-        )
+        ) from e
 
 
 @router.post(
@@ -640,7 +644,10 @@ async def verify_inclusion(
                 iota_message_id=anchor.iota_block_id,
                 explorer_url=anchor.explorer_url,
                 tangle_verified=tangle_verified,
-                message="Verification successful" if verified else "Merkle proof verification failed",
+                message=(
+                    "Verification successful" if verified
+                    else "Merkle proof verification failed"
+                ),
                 proof_path=proof_path,
             )
 
@@ -651,4 +658,4 @@ async def verify_inclusion(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Verification failed: {e}",
-        )
+        ) from e

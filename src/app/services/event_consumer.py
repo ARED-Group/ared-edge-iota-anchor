@@ -139,7 +139,7 @@ class EventConsumer:
 
             query = text(f"""
                 SELECT id, block_number, block_hash, event_index,
-                       pallet, event_name, event_data, event_hash, 
+                       pallet, event_name, event_data, event_hash,
                        created_at as timestamp
                 FROM indexed_events
                 WHERE created_at >= :start_time

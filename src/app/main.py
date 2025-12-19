@@ -254,7 +254,7 @@ def create_application() -> FastAPI:
     async def ready() -> Response:
         """
         Readiness probe for Kubernetes.
-        
+
         Checks database connectivity as the critical dependency.
         IOTA connectivity is optional for graceful degradation.
         """

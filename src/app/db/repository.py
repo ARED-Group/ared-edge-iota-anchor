@@ -503,7 +503,7 @@ class AnchorRepository:
         """
         if device_id:
             query = text("""
-                SELECT ai.id, ai.event_id, ai.event_hash, ai.position_in_merkle, 
+                SELECT ai.id, ai.event_id, ai.event_hash, ai.position_in_merkle,
                        ai.merkle_proof, ai.created_at
                 FROM anchor_items ai
                 LEFT JOIN events e ON ai.event_id = e.id

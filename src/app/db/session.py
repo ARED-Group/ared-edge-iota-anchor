@@ -86,22 +86,22 @@ async def _ensure_anchor_tables() -> None:
 
         # Create indexes
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_anchors_status 
+            CREATE INDEX IF NOT EXISTS idx_anchors_status
             ON anchors(status)
         """))
 
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_anchors_created_at 
+            CREATE INDEX IF NOT EXISTS idx_anchors_created_at
             ON anchors(created_at DESC)
         """))
 
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_anchor_items_anchor_id 
+            CREATE INDEX IF NOT EXISTS idx_anchor_items_anchor_id
             ON anchor_items(anchor_id)
         """))
 
         await session.execute(text("""
-            CREATE INDEX IF NOT EXISTS idx_anchor_items_event_hash 
+            CREATE INDEX IF NOT EXISTS idx_anchor_items_event_hash
             ON anchor_items(event_hash)
         """))
 
