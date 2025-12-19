@@ -6,24 +6,24 @@ Provides APIs for anchoring Merkle roots to IOTA Tangle and verifying proofs.
 
 import signal
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import structlog
 import uvicorn
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
-from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
+from prometheus_client import Gauge, make_asgi_app
 from starlette.responses import Response
 
 from app.api.v1 import router as api_v1_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db import async_session_factory, close_db, init_db
+from app.metrics import get_anchor_metrics
 from app.services.anchor_service import AnchorService
 from app.services.anchor_workflow import AnchorWorkflow
 from app.services.reconciliation import ReconciliationService, ensure_retry_log_table
-from app.metrics import get_anchor_metrics
 
 setup_logging()
 logger = structlog.get_logger(__name__)

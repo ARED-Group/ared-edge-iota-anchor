@@ -12,9 +12,8 @@ Metrics Categories:
 - Event aggregation
 """
 
-from prometheus_client import Counter, Gauge, Histogram, Info
-
 import structlog
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 logger = structlog.get_logger(__name__)
 

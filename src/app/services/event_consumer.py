@@ -5,17 +5,14 @@ Consumes indexed events from the Substrate indexer database
 and collects event hashes for anchoring.
 """
 
-import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
 

@@ -5,9 +5,9 @@ Provides Merkle tree construction, proof generation, and verification.
 """
 
 from app.crypto.merkle import (
-    MerkleTree,
-    MerkleProof,
     MerkleNode,
+    MerkleProof,
+    MerkleTree,
     compute_leaf_hash,
     compute_parent_hash,
     verify_proof,

@@ -8,22 +8,19 @@ Orchestrates the complete anchoring workflow:
 4. Store anchor record and items
 """
 
-import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import structlog
 from prometheus_client import Counter, Histogram
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.crypto.merkle import MerkleTree, verify_proof
+from app.crypto.merkle import MerkleTree
 from app.db.repository import AnchorRepository
-from app.services.anchor_service import AnchorRecord, AnchorService, AnchorStatus
-from app.services.event_consumer import EventConsumer, EventWindow, IndexedEvent
-from app.services.iota_client import AnchorMessage
+from app.services.anchor_service import AnchorRecord, AnchorService
+from app.services.event_consumer import EventConsumer, IndexedEvent
 
 logger = structlog.get_logger(__name__)
 

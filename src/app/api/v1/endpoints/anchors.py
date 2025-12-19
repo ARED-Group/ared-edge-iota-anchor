@@ -14,13 +14,13 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from app.crypto.merkle import MerkleProof, ProofElement, verify_proof
 from app.db import async_session_factory
 from app.db.repository import AnchorRepository
-from app.services.anchor_service import AnchorRecord, AnchorStatus
+from app.services.anchor_service import AnchorRecord
 from app.services.anchor_workflow import AnchorWorkflow
 
 logger = structlog.get_logger(__name__)

@@ -4,9 +4,8 @@ ARED Edge IOTA Anchor Service - Reconciliation
 Handles retry and recovery for failed anchoring operations.
 """
 
-import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import structlog
@@ -14,10 +13,8 @@ from prometheus_client import Counter, Gauge
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.db.repository import AnchorRepository
 from app.services.anchor_service import AnchorRecord, AnchorService, AnchorStatus
-from app.services.iota_client import IOTAClient
 
 logger = structlog.get_logger(__name__)
 

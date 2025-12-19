@@ -14,10 +14,8 @@ from uuid import UUID, uuid4
 
 import structlog
 
-from app.core.config import settings
 from app.services.iota_client import (
     AnchorMessage,
-    BlockMetadata,
     IOTAClient,
     IOTAClientError,
     PostingError,
