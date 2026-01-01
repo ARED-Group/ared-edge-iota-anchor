@@ -102,12 +102,12 @@ Anchors are synchronized to Prospect Cloud for external verification:
 - Proof references attached to telemetry payloads for end-to-end auditability
 
 Failure Recovery
-| Failure Mode | Detection | Recovery |
-|--------------|-----------|----------|
-| IOTA node unreachable | Post timeout, connection error | Retry with exponential backoff, failover to alternate node |
-| Anchor post failed | HTTP error, invalid response | Mark as failed, retry on next schedule |
-| DB write failed | Transaction error | Rollback, retry anchor creation |
-| Duplicate anchor | Idempotency check | Skip, return existing anchor ID |
+**Failure Recovery:**
+
+- IOTA node unreachable: Detected by post timeout and connection error, recovery via retry with exponential backoff and failover to alternate node
+- Anchor post failed: Detected by HTTP error and invalid response, recovery via mark as failed and retry on next schedule
+- DB write failed: Detected by transaction error, recovery via rollback and retry anchor creation
+- Duplicate anchor: Detected by idempotency check, recovery via skip and return existing anchor ID
 
 License
 - Add LICENSE at repository root (choose an appropriate license for your code).
