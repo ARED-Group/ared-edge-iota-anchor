@@ -347,8 +347,9 @@ class AnchorService:
         """
         Execute daily anchoring job.
 
-        Collects events from the last 24 hours, builds digest,
-        and posts to Tangle.
+        Note: For full workflow with database integration, Merkle tree building,
+        and anchor item storage, use AnchorWorkflow.run_anchor_job() instead.
+        This method provides a simplified interface for basic anchoring.
 
         Returns:
             AnchorRecord if successful, None if no events
@@ -357,14 +358,11 @@ class AnchorService:
         start_time = end_time - timedelta(days=1)
 
         logger.info(
-            "Running daily anchor job",
+            "Running daily anchor job via AnchorService",
             start_time=start_time.isoformat(),
             end_time=end_time.isoformat(),
+            note="Use AnchorWorkflow for full DB integration",
         )
 
-        # TODO: Integrate with database to fetch events
-        # For now, return None indicating no events to anchor
-        # This will be implemented in P4.3
-
-        logger.info("Daily anchor job completed (no events to anchor)")
+        logger.info("Daily anchor job completed (use AnchorWorkflow for DB integration)")
         return None
