@@ -6,6 +6,7 @@ Supports environment variable overrides for all settings.
 """
 
 from functools import lru_cache
+from urllib.parse import quote_plus
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         """Async database URL for SQLAlchemy."""
         return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}"
+            f"postgresql+asyncpg://{quote_plus(self.DB_USER)}:{quote_plus(self.DB_PASSWORD)}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
