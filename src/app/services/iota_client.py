@@ -10,7 +10,7 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import httpx
@@ -28,7 +28,7 @@ from app.core.config import settings
 logger = structlog.get_logger(__name__)
 
 
-class MessageStatus(str, Enum):
+class MessageStatus(StrEnum):
     """IOTA message confirmation status."""
 
     PENDING = "pending"

@@ -15,11 +15,11 @@ to maintain a balanced tree structure.
 
 import hashlib
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class ProofDirection(str, Enum):
+class ProofDirection(StrEnum):
     """Direction indicator for proof path elements."""
 
     LEFT = "L"

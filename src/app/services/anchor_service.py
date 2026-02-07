@@ -8,7 +8,7 @@ Provides methods for the API and scheduler to trigger anchoring.
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -24,7 +24,7 @@ from app.services.iota_client import (
 logger = structlog.get_logger(__name__)
 
 
-class AnchorStatus(str, Enum):
+class AnchorStatus(StrEnum):
     """Anchor lifecycle status."""
 
     PENDING = "pending"
