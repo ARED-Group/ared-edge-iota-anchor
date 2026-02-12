@@ -334,7 +334,6 @@ class AnchorRepository:
                 "merkle_proof": json.dumps(merkle_proof) if merkle_proof else None,
             },
         )
-        await self._session.commit()
 
         row = result.fetchone()
         return row.id
