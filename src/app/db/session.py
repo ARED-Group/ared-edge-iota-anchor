@@ -48,7 +48,13 @@ async def init_db() -> None:
 
 
 async def _ensure_anchor_tables() -> None:
-    """Ensure anchor-related tables exist."""
+    """
+    Ensure anchor-related tables exist.
+
+    Preferred path: run ``alembic upgrade head`` before starting the service.
+    This runtime DDL is kept as a backward-compatible fallback so the service
+    can still bootstrap in environments that have not yet adopted Alembic.
+    """
     async with async_session_factory() as session:
         # Create anchors table
         await session.execute(text("""
