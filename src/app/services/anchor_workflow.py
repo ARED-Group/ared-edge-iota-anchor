@@ -15,12 +15,15 @@ from uuid import UUID
 
 import structlog
 from prometheus_client import Counter, Histogram
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crypto.merkle import MerkleTree
 from app.db.repository import AnchorRepository
 from app.services.anchor_service import AnchorRecord, AnchorService
 from app.services.event_consumer import EventConsumer, IndexedEvent
+
+ANCHOR_JOB_LOCK_ID = 839_421_765
 
 logger = structlog.get_logger(__name__)
 
@@ -127,6 +130,27 @@ class AnchorWorkflow:
         """
         job_start = datetime.utcnow()
 
+        # Acquire advisory lock to prevent concurrent anchor runs
+        lock_result = await self._session.execute(
+            text("SELECT pg_try_advisory_lock(:lock_id)"),
+            {"lock_id": ANCHOR_JOB_LOCK_ID},
+        )
+        acquired = lock_result.scalar()
+        if not acquired:
+            logger.warning("Another anchor job is already running, skipping")
+            ANCHOR_JOBS_TOTAL.labels(status="skipped").inc()
+            return AnchorResult(
+                success=True,
+                anchor_id=None,
+                digest=None,
+                event_count=0,
+                iota_block_id=None,
+                error="Skipped: concurrent job in progress",
+                start_time=start_time or job_start,
+                end_time=end_time or job_start,
+                duration_seconds=0.0,
+            )
+
         # Determine time window
         if end_time is None:
             end_time = datetime.utcnow()
@@ -201,7 +225,7 @@ class AnchorWorkflow:
                     duration_seconds=(datetime.utcnow() - job_start).total_seconds(),
                 )
 
-            # Step 4: Create and post anchor
+            # Step 4: Create and post anchor to IOTA Tangle
             anchor_record = await self._anchor_service.create_anchor(
                 digest=digest,
                 item_count=window.event_count,
@@ -211,15 +235,15 @@ class AnchorWorkflow:
                 wait_for_confirmation=wait_for_confirmation,
             )
 
-            # Step 5: Save anchor to database
+            # Step 5: Atomically persist anchor record and items
             await self._repository.save_anchor(anchor_record)
-
-            # Step 6: Store anchor items with proofs
             await self._store_anchor_items(
                 anchor_id=anchor_record.id,
                 tree=tree,
                 events=window.events,
+                commit=False,
             )
+            await self._session.commit()
 
             # Update metrics
             ANCHOR_JOBS_TOTAL.labels(status="success").inc()
@@ -270,6 +294,12 @@ class AnchorWorkflow:
                 start_time=start_time,
                 end_time=end_time,
                 duration_seconds=duration,
+            )
+
+        finally:
+            await self._session.execute(
+                text("SELECT pg_advisory_unlock(:lock_id)"),
+                {"lock_id": ANCHOR_JOB_LOCK_ID},
             )
 
     async def run_daily_anchor(self) -> AnchorResult:
@@ -330,15 +360,11 @@ class AnchorWorkflow:
     ) -> AnchorRecord | None:
         """Check if an anchor already exists for this digest and window."""
         try:
-            anchors = await self._repository.list_anchors(limit=1)
-            for anchor in anchors:
-                if (
-                    anchor.digest == digest
-                    and anchor.start_time == start_time
-                    and anchor.end_time == end_time
-                ):
-                    return anchor
-            return None
+            return await self._repository.find_anchor_by_digest_and_window(
+                digest=digest,
+                start_time=start_time,
+                end_time=end_time,
+            )
         except Exception:
             return None
 
@@ -347,6 +373,7 @@ class AnchorWorkflow:
         anchor_id: UUID,
         tree: MerkleTree,
         events: list[IndexedEvent],
+        commit: bool = True,
     ) -> None:
         """
         Store anchor items with Merkle proofs.
@@ -355,6 +382,7 @@ class AnchorWorkflow:
             anchor_id: Parent anchor ID
             tree: Merkle tree used for anchoring
             events: List of events in tree order
+            commit: Whether to commit the transaction (False when caller manages tx)
         """
         logger.info(
             "Storing anchor items",
@@ -373,7 +401,8 @@ class AnchorWorkflow:
                 merkle_proof=proof.to_compact(),
             )
 
-        await self._session.commit()
+        if commit:
+            await self._session.commit()
 
         logger.info(
             "Stored anchor items",

@@ -79,10 +79,62 @@ class AnchorRepository:
                 "confirmed_at": record.confirmed_at,
             },
         )
-        await self._session.commit()
 
         row = result.fetchone()
         return row.id if row else record.id
+
+    async def find_anchor_by_digest_and_window(
+        self,
+        digest: str,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> AnchorRecord | None:
+        """
+        Find an anchor by its digest and time window (unique constraint match).
+
+        Args:
+            digest: Merkle root digest
+            start_time: Window start time
+            end_time: Window end time
+
+        Returns:
+            AnchorRecord or None if not found
+        """
+        query = text("""
+            SELECT id, digest, method, start_time, end_time, item_count,
+                   status, iota_block_id, iota_network, explorer_url,
+                   error_message, created_at, posted_at, confirmed_at
+            FROM anchors
+            WHERE digest = :digest
+              AND start_time = :start_time
+              AND end_time = :end_time
+        """)
+
+        result = await self._session.execute(
+            query,
+            {"digest": digest, "start_time": start_time, "end_time": end_time},
+        )
+        row = result.fetchone()
+
+        if not row:
+            return None
+
+        return AnchorRecord(
+            id=row.id,
+            digest=row.digest,
+            method=row.method,
+            start_time=row.start_time,
+            end_time=row.end_time,
+            item_count=row.item_count,
+            status=AnchorStatus(row.status),
+            iota_block_id=row.iota_block_id,
+            iota_network=row.iota_network,
+            explorer_url=row.explorer_url,
+            error_message=row.error_message,
+            created_at=row.created_at,
+            posted_at=row.posted_at,
+            confirmed_at=row.confirmed_at,
+        )
 
     async def get_anchor(self, anchor_id: UUID) -> AnchorRecord | None:
         """

@@ -20,7 +20,7 @@ patches:
         value: "0 */4 * * *"
     target:
       kind: CronJob
-      name: iota-anchor
+      name: iota-anchor-daily
 
 configMapGenerator:
   - name: iota-anchor-config
