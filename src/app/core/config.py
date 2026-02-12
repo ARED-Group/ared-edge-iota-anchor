@@ -8,7 +8,7 @@ Supports environment variable overrides for all settings.
 from functools import lru_cache
 from urllib.parse import quote_plus
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -127,6 +127,16 @@ class Settings(BaseSettings):
         description="Enable IOTA Tangle anchoring. Set to false for graceful degradation.",
     )
 
+    # API Authentication
+    API_KEY: str | None = Field(
+        default=None,
+        description="API key for protecting write endpoints (use K8s secret in production)",
+    )
+    API_AUTH_ENABLED: bool = Field(
+        default=True,
+        description="Require API key for write operations. Defaults to True when API_KEY is set.",
+    )
+
     # Scheduler
     SCHEDULER_ENABLED: bool = True
     ANCHOR_SCHEDULE_HOUR: int = 0
@@ -147,6 +157,25 @@ class Settings(BaseSettings):
         if v.lower() not in valid_networks:
             raise ValueError(f"IOTA_NETWORK must be one of: {valid_networks}")
         return v.lower()
+
+    @field_validator("API_KEY", mode="before")
+    @classmethod
+    def _strip_api_key(cls, v: str | None) -> str | None:
+        return v.strip() if isinstance(v, str) else v
+
+    @model_validator(mode="after")
+    def _enforce_production_secrets(self) -> "Settings":
+        if self.ENV in ("production", "staging"):
+            if self.API_AUTH_ENABLED and not self.API_KEY:
+                raise ValueError(
+                    "API_KEY is required when API_AUTH_ENABLED=true "
+                    f"in {self.ENV} environment"
+                )
+            if not self.API_AUTH_ENABLED:
+                raise ValueError(
+                    f"API authentication cannot be disabled in {self.ENV}"
+                )
+        return self
 
     @property
     def iota_tag(self) -> str:

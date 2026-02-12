@@ -17,6 +17,7 @@ from prometheus_client import Gauge, make_asgi_app
 from starlette.responses import Response
 
 from app.api.v1 import router as api_v1_router
+from app.core.auth import APIKeyAuthMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db import async_session_factory, close_db, init_db
@@ -217,6 +218,9 @@ def create_application() -> FastAPI:
         redoc_url="/redoc" if settings.ENV != "production" else None,
         lifespan=lifespan,
     )
+
+    # API key authentication middleware
+    app.add_middleware(APIKeyAuthMiddleware)
 
     # Include routers
     app.include_router(api_v1_router, prefix="/api/v1")
